@@ -73,30 +73,30 @@ public class ContractDeployMojo extends AbstractMojo {
 
 
         if(StringUtils.isEmpty(host)){
-            logger.info("host不能为空");
+            logger.info("host can not be empty");
             return;
         }
 
         if(StringUtils.isEmpty(ledger)){
-            logger.info("ledger不能为空.");
+            logger.info("ledger can not be empty.");
             return;
         }
         if(StringUtils.isEmpty(pubKey)){
-            logger.info("pubKey不能为空.");
+            logger.info("pubKey can not be empty.");
             return;
         }
         if(StringUtils.isEmpty(prvKey)){
-            logger.info("prvKey不能为空.");
+            logger.info("prvKey can not be empty.");
             return;
         }
         if(StringUtils.isEmpty(contractPath)){
-            logger.info("contractPath不能为空.");
+            logger.info("contractPath can not be empty.");
             return;
         }
 
        File contract = new File(contractPath);
         if (!contract.isFile()){
-            logger.info("文件"+contractPath+"不存在");
+            logger.info("file:"+contractPath+" is not exist");
             return;
         }
         byte[] contractBytes = FileUtils.readBytes(contractPath);

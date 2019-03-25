@@ -130,10 +130,10 @@ public enum ContractDeployExeUtil {
         txTpl.contracts().deploy(contractIdentity, chainCode);
         PreparedTransaction ptx = txTpl.prepare();
         ptx.sign(ownerKey);
-        // 提交并等待共识返回；
+        // Submit and wait for consensus to return;
         TransactionResponse txResp = ptx.commit();
 
-        // 验证结果；
+        // Verification results;
         contractAddress = contractIdentity.getAddress();
         this.setContractAddress(contractAddress);
         System.out.println("contract's address="+contractAddress);
@@ -147,7 +147,7 @@ public enum ContractDeployExeUtil {
         return deploy(ledgerHash, contractIdentity, ownerKey, chainCode);
     }
 
-    // 根据用户指定的公钥生成合约地址
+    // Generate contract addresses based on user-specified public keys
     public boolean deploy(String host, int port, String ledger,String ownerPubPath, String ownerPrvPath,
                           String ownerPassword, String chainCodePath,String pubPath){
         PubKey pubKey = getPubKey(pubPath);
@@ -165,18 +165,18 @@ public enum ContractDeployExeUtil {
         BlockchainKeyPair ownerKey = getKeyPair(ownerPubPath, ownerPrvPath, ownerPassword);
         HashDigest ledgerHash = new HashDigest(Base58Utils.decode(ledger));
 
-        // 定义交易,传输最简单的数字、字符串、提取合约中的地址;
+        // Define the transaction, transfer the simplest numbers, strings, extract the address in the contract;
         TransactionTemplate txTpl = bcsrv.newTransaction(ledgerHash);
         txTpl.contractEvents().send(getContractAddress(),event,contractArgs.getBytes());
 
-        // 签名；
+        // sign；
         PreparedTransaction ptx = txTpl.prepare();
         ptx.sign(ownerKey);
 
-        // 提交并等待共识返回；
+        // Submit and wait for consensus to return;
         TransactionResponse txResp = ptx.commit();
 
-        // 验证结果；
+        // Verification results;
         return txResp.isSuccess();
     }
 
