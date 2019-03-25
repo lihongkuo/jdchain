@@ -117,7 +117,7 @@ JD区块链的核心对象包括：
 ## 三、部署模型
 
  1. 总体部署
-![deployment architecture](images/deployment.png)
+![deployment architecture](docs/images/deployment.png)
  
  2. 系统组件
  - 共识节点
