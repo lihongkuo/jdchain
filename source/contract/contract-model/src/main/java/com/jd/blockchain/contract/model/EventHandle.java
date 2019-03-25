@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * HTTP 服务方法；
+ * HTTP service method；
  * 
  * @author haiq
  *
