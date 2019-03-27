@@ -12,7 +12,6 @@ import com.jd.blockchain.utils.QueryUtil;
 import com.jd.blockchain.utils.ValueType;
 
 public class DataAccount implements AccountHeader, MerkleProvable {
-
 	private BaseAccount baseAccount;
 
 	public DataAccount(BaseAccount accBase) {
@@ -119,18 +118,9 @@ public class DataAccount implements AccountHeader, MerkleProvable {
 	 */
 
 	public KVDataEntry[] getDataEntries(int fromIndex, int count) {
-
 		if (getDataEntriesTotalCount() == 0 || count == 0) {
 			return null;
 		}
-
-//		if (count == -1 || count > getDataEntriesTotalCount()) {
-//			fromIndex = 0;
-//			count = (int)getDataEntriesTotalCount();
-//		}
-//		if (fromIndex < 0 || fromIndex > getDataEntriesTotalCount() - 1) {
-//			fromIndex = 0;
-//		}
 		int pages[]  = QueryUtil.calFromIndexAndCount(fromIndex,count,(int)getDataEntriesTotalCount());
 		fromIndex = pages[0];
 		count = pages[1];

@@ -23,13 +23,12 @@ import java.util.Properties;
 
 /**
  * for contract remote deploy;
- * @goal contractDeploy
- * @phase process-sources
- * @Author zhaogw
- * @Date 2018/10/18 10:12
+ * @phase compile
+ * @author zhaogw
+ * date 2018/10/18 10:12
  */
 
-@Mojo(name = "deploy")
+@Mojo(name = "contractDeploy")
 public class ContractDeployMojo extends AbstractMojo {
     Logger logger = LoggerFactory.getLogger(ContractDeployMojo.class);
 
@@ -65,12 +64,11 @@ public class ContractDeployMojo extends AbstractMojo {
             throw new MojoFailureException("invalid port");
         }
         String host = prop.getProperty("host");
-        String ledger = prop.getProperty("ledger");
-        String pubKey = prop.getProperty("pubKey");
-        String prvKey = prop.getProperty("prvKey");
-        String password = prop.getProperty("password");
-        String contractPath = prop.getProperty("contractPath");
-
+        String ledger = prop.getProperty("ledgerHash");
+        String ownerPubPath = prop.getProperty("ownerPubPath");
+        String ownerPrvPath = prop.getProperty("ownerPrvPath");
+        String ownerPassword = FileUtils.readText(prop.getProperty("ownerPassword"));
+        String chainCodePath = prop.getProperty("chainCodePath");
 
         if(StringUtils.isEmpty(host)){
             logger.info("host can not be empty");
@@ -81,39 +79,41 @@ public class ContractDeployMojo extends AbstractMojo {
             logger.info("ledger can not be empty.");
             return;
         }
-        if(StringUtils.isEmpty(pubKey)){
+        if(StringUtils.isEmpty(ownerPubPath)){
             logger.info("pubKey can not be empty.");
             return;
         }
-        if(StringUtils.isEmpty(prvKey)){
+        if(StringUtils.isEmpty(ownerPrvPath)){
             logger.info("prvKey can not be empty.");
             return;
         }
-        if(StringUtils.isEmpty(contractPath)){
+        if(StringUtils.isEmpty(chainCodePath)){
             logger.info("contractPath can not be empty.");
             return;
         }
 
-       File contract = new File(contractPath);
+       File contract = new File(chainCodePath);
         if (!contract.isFile()){
-            logger.info("file:"+contractPath+" is not exist");
+            logger.info("file:"+chainCodePath+" is not exist");
             return;
         }
-        byte[] contractBytes = FileUtils.readBytes(contractPath);
+        byte[] contractBytes = FileUtils.readBytes(chainCodePath);
 
 
-        PrivKey prv = KeyGenCommand.decodePrivKeyWithRawPassword(prvKey, password);
-        PubKey pub = KeyGenCommand.decodePubKey(pubKey);
-        BlockchainKeyPair blockchainKeyPair = new BlockchainKeyPair(pub, prv);
+//        PrivKey prv = KeyGenCommand.decodePrivKeyWithRawPassword(prvKey, password);
+//        PubKey pub = KeyGenCommand.decodePubKey(pubKey);
+//        BlockchainKeyPair blockchainKeyPair = new BlockchainKeyPair(pub, prv);
+        BlockchainKeyPair ownerKey = ContractDeployExeUtil.instance.getKeyPair(ownerPubPath, ownerPrvPath, ownerPassword);
         HashDigest ledgerHash = new HashDigest(Base58Utils.decode(ledger));
 
         StringBuffer sb = new StringBuffer();
         sb.append("host:"+ host).append(",port:"+port).append(",ledgerHash:"+ledgerHash.toBase58()).
-                append(",pubKey:"+pubKey).append(",prvKey:"+prv).append(",contractPath:"+contractPath);
+                append(",pubKey:"+ownerKey.getPubKey()).append(",prvKey:"+ownerKey.getPrivKey()).append(",contractPath:"+chainCodePath);
         logger.info(sb.toString());
-        ContractDeployExeUtil.instance.deploy(host,port,ledgerHash, blockchainKeyPair, contractBytes);
+        if(ContractDeployExeUtil.instance.deploy(host,port,ledgerHash, ownerKey, contractBytes)){
+            logger.info("deploy is OK.");
+        }
     }
-
 }
 
 
