@@ -354,325 +354,122 @@ JD区块链的核心对象包括：
 ## 五、编程接口
 
 ### 1. 服务连接
-	// 区块链共识域；
-	String realm = "SUPPLY_CHAIN_ALLIANCE";
-	// 节点地址列表；
-	String[] peerIPs = { "192.168.10.10", "192.168.10.11", "192.168.10.12", "192.168.10.13" };
-	// 客户端的认证账户；
-	String clientAddress = "kkjsafieweqEkadsfaslkdslkae998232jojf==";
-	String privKey = "safefsd32q34vdsvs";
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
+
+
+```java
+    //创建服务代理
+    public static BlockchainKeyPair CLIENT_CERT = BlockchainKeyGenerator.getInstance().generate();
+    final String GATEWAY_IP = "127.0.0.1";
+    final int GATEWAY_PORT = 80;
+    final boolean SECURE = false;
+    GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(GATEWAY_IP, GATEWAY_PORT, SECURE,
+    		CLIENT_CERT);
+    // 创建服务代理；
+    BlockchainService service = serviceFactory.getBlockchainService();
+```
+
 
 ### 2. 账户注册
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
-	
-	// 在本地定义注册账号的 TX；
-	String sponsorAddress = "kFGeafiafEeqEkadsfaslkdslkae99ds66jf==";
-	String sponsorPrivKey = "privKkjwlkejflkjdsfoiajfij329323==";
-	TransactionTemplate txTemp = service.newTransaction(sponsorAddress);
 
-	//--------------------------------------
-	// 区块链秘钥生成器；用于在客户端生成账户的公私钥和地址；
-	BlockchainKeyGenerator generator = BlockchainKeyGenerator.getInstance();
-	BlockchainKeyPair bcKey1 = generator.generate(KeyType.ED25519);
-	BlockchainKeyPair bcKey2 = generator.generate(KeyType.ED25519);
-	
-	String exchangeContractScript = "function(){}";
-	// 注册账户；
-	txTemp.registerAccount()
-		.register(bcKey1, AccountStateType.MAP, exchangeContractScript)
-		.register(bcKey2, AccountStateType.OBJECT, null);
-	//--------------------------------------
 
-	// TX 准备就绪；
-	PreparedTransaction prepTx = txTemp.prepare();
+```java
+    // 创建服务代理；
+    BlockchainService service = serviceFactory.getBlockchainService();
+    // 在本地定义注册账号的 TX；
+    TransactionTemplate txTemp = service.newTransaction(ledgerHash);		
+    SignatureFunction signatureFunction = asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
+    CryptoKeyPair cryptoKeyPair = signatureFunction.generateKeyPair();
+    BlockchainKeyPair user = new BlockchainKeyPair(cryptoKeyPair.getPubKey(), cryptoKeyPair.getPrivKey());
+    
+    txTemp.users().register(user.getIdentity());
+    
+    // TX 准备就绪；
+    PreparedTransaction prepTx = txTemp.prepare();
+    // 使用私钥进行签名；
+    CryptoKeyPair keyPair = getSponsorKey();
+    prepTx.sign(keyPair);
+    
+    // 提交交易；
+    prepTx.commit();
+```
 
-	// 使用私钥进行签名；
-	prepTx.sign(sponsorAddress, sponsorPrivKey);
 
-	// 提交交易；
-	prepTx.commit();
+### 3. 写入数据
 
-### 3. 权限设置
+```java
+    // 创建服务代理；
+    BlockchainService service = serviceFactory.getBlockchainService();
+    
+    HashDigest ledgerHash = getLedgerHash();
+    // 在本地定义注册账号的 TX；
+    TransactionTemplate txTemp = service.newTransaction(ledgerHash);
+    
+    // --------------------------------------
+    // 将商品信息写入到指定的账户中；
+    // 对象将被序列化为 JSON 形式存储，并基于 JSON 结构建立查询索引；
+    String commodityDataAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
+    Commodity commodity1 = new Commodity();
+    txTemp.dataAccount(commodityDataAccount).set("ASSET_CODE", commodity1.getCode().getBytes(), -1);
+    
+    // TX 准备就绪；
+    PreparedTransaction prepTx = txTemp.prepare();
+    
+    String txHash = ByteArray.toBase64(prepTx.getHash().toBytes());
+    // 使用私钥进行签名；
+    CryptoKeyPair keyPair = getSponsorKey();
+    prepTx.sign(keyPair);
+    
+    // 提交交易；
+    prepTx.commit();
+```
 
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
-	
-	// 在本地定义注册账号的 TX；
-	String sponsorAddress = "kFGeafiafEeqEkadsfaslkdslkae99ds66jf==";
-	String sponsorPrivKey = "privKkjwlkejflkjdsfoiajfij329323==";
-	TransactionTemplate txTemp = service.newTransaction(sponsorAddress);
-
-	//--------------------------------------
-	// 配置账户的权限；
-	String walletAccount = "Kjfe8832hfa9jjjJJDkshrFjksjdlkfj93F==";
-	String user1 = "MMMEy902jkjjJJDkshreGeasdfassdfajjf==";
-	String user2 = "Kjfe8832hfa9jjjJJDkshrFjksjdlkfj93F==";
-	// 配置:
-	// “状态数据的写入权限”的阈值为 100；
-	// 需要 user1、user2 两个账户的联合签名才能写入；
-	// 当前账户仅用于表示一个业务钱包，禁止自身的写入权限，只能由业务角色的账户才能操作；
-	txTemp.configPrivilege(walletAccount)
-		.setThreshhold(PrivilegeType.STATE_WRITE, 100) 
-		.enable(PrivilegeType.STATE_WRITE, user1, 50) 
-		.enable(PrivilegeType.STATE_WRITE, user2, 50)
-		.disable(PrivilegeType.STATE_WRITE, walletAccount);
-	//--------------------------------------
-
-	// TX 准备就绪；
-	PreparedTransaction prepTx = txTemp.prepare();
-
-	// 使用私钥进行签名；
-	prepTx.sign(sponsorAddress, sponsorPrivKey);
-
-	// 提交交易；
-	prepTx.commit();
-
-### 4. 写入数据
-
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
-
-	// 在本地定义注册账号的 TX；
-	String sponsorAddress = "kFGeafiafEeqEkadsfaslkdslkae99ds66jf==";
-	String sponsorPrivKey = "privKkjwlkejflkjdsfoiajfij329323==";
-	TransactionTemplate txTemp = service.newTransaction(sponsorAddress);
-
-	// --------------------------------------
-	// 将商品信息写入到指定的账户中；
-	// 对象将被序列化为 JSON 形式存储，并基于 JSON 结构建立查询索引；
-	String commodityDataAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
-	Commodity commodity1 = new Commodity();
-	Commodity commodity2 = new Commodity();
-	txTemp.updateObjects(commodityDataAccount)
-		.insert(commodity1.getCode(), commodity1)
-		.update(commodity2.getCode(), commodity2, true);
-
-	// 在钱包账户以 KEY “RMB-ASSET” 表示一种数字资产，通过在一个 TX
-	// 对两个账户的同一个资产数值分别增加和减少，实现转账的功能；
-	String walletAccount1 = "MMMEy902jkjjJJDkshreGeasdfassdfajjf==";
-	String walletAccount2 = "Kjfe8832hfa9jjjJJDkshrFjksjdlkfj93F==";
-	txTemp.updateMap(walletAccount1).decreaseInt("RMB-ASSET", 1000);
-	txTemp.updateMap(walletAccount2).increaseInt("RMB-ASSET", 1000);
-	// --------------------------------------
-
-	// TX 准备就绪；
-	PreparedTransaction prepTx = txTemp.prepare();
-	String txHash = prepTx.getHash();
-
-	// 使用私钥进行签名；
-	prepTx.sign(sponsorAddress, sponsorPrivKey);
-
-	// 提交交易；
-	prepTx.commit();
  
-### 5. 查询数据
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
+### 4. 查询数据
 
-	// 查询区块信息；
-	// 区块高度；
-	long ledgerNumber = service.getLedgerNumber();
-	// 最新区块；
-	Block latestBlock = service.getBlock(ledgerNumber);
-	// 区块中的交易的数量；
-	int txCount = latestBlock.getTxCount();
-	// 获取交易列表；
-	Transaction[] txList = service.getTransactions(ledgerNumber, 0, 100);
 
-	// 根据交易的 hash 获得交易；注：客户端生成 PrepareTransaction 时得到交易hash；
-	String txHash = "iikjeqke98321rjoijsdfa";
-	Transaction tx = service.getTransaction(txHash);
+```java
+    // 创建服务代理；
+    BlockchainService service = serviceFactory.getBlockchainService();
+    
+    // 查询区块信息；
+    // 区块高度；
+    long ledgerNumber = service.getLedger(LEDGER_HASH).getLatestBlockHeight();
+    // 最新区块；
+    LedgerBlock latestBlock = service.getBlock(LEDGER_HASH, ledgerNumber);
+    // 区块中的交易的数量；
+    long txCount = service.getTransactionCount(LEDGER_HASH, latestBlock.getHash());
+    // 获取交易列表；
+    LedgerTransaction[] txList = service.getTransactions(LEDGER_HASH, ledgerNumber, 0, 100);
+    
+    // 根据交易的 hash 获得交易；注：客户端生成 PrepareTransaction 时得到交易hash；
+    HashDigest txHash = txList[0].getTransactionContent().getHash();
+    Transaction tx = service.getTransactionByContentHash(LEDGER_HASH, txHash);
+    // 获取数据；
+    String commerceAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
+    String[] objKeys = new String[] { "x001", "x002" };
+    KVDataEntry[] kvData = service.getDataEntries(LEDGER_HASH, commerceAccount, objKeys);
+    
+    long payloadVersion = kvData[0].getVersion();
+```
 
-	// 获取数据；
-	String commerceAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
-	Set<String> objKeys = ArrayUtils.asSet(new String[] { "x001", "x002" });
 
-	PayloadMap payloadData = service.getPayload(commerceAccount, objKeys);
+### 5. 合约发布及执行
 
-	AccountStateType payloadType = payloadData.getPayloadType();
-	long payloadVersion = payloadData.getPayloadVersion();
 
-	boolean exist = service.containPayload(commerceAccount, "x003");
-
-	// 按条件查询；
-	// 1、从保存会员信息的账户地址查询；
-	String condition = "female = true AND age > 18 AND address.city = 'beijing'";
-	String memberInfoAccountAddress = "kkf2io39823jfIjfiIRWKQj30203fx==";
-	PayloadMap memberInfo = service.queryObject(memberInfoAccountAddress, condition);
-
-	// 2、从保存会员信息的账户地址查询；
-	Map<String, PayloadMap> memberInfoWithAccounts = service.queryObject(condition);
-
-### 6. 合约调用
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
-
-	// 发起交易；
-	String sponsorAddress = "kFGeafiafEeqEkadsfaslkdslkae99ds66jf==";
-	String sponsorPrivKey = "privKkjwlkejflkjdsfoiajfij329323==";
-	TransactionTemplate txTemp = service.newTransaction(sponsorAddress);
-
-	// --------------------------------------
-	// 一个贸易账户，贸易结算后的利润将通过一个合约账户来执行利润分配；
-	// 合约账户被设置为通用的账户，不具备对贸易结算账户的直接权限；
-	// 只有当前交易发起人具备对贸易账户的直接权限，当交易发起人对交易进行签名之后，权限被间接传递给合约账户；
-	String commerceAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
-	// 处理利润分成的通用业务逻辑的合约账户；
-	String profitDistributionContract = "AAdfe4346fHhefe34fwf343kaeER4678RT==";
-	
-	//收益人账户；
-	String receiptorAccount1 = "MMMEy902jkjjJJDkshreGeasdfassdfajjf==";
-	String receiptorAccount2 = "Kjfe8832hfa9jjjJJDkshrFjksjdlkfj93F==";
-	//资产编码；
-	String assetKey = "RMB-ASSET";
-	//此次待分配利润；
-	long profit = 1000000;
-	
-	//备注信息；
-    Remark remark = new Remark();
-    String remarkJSON = SerializeUtils.serializeToJSON(remark);
-	
-    // 合约代码的参数表；
-	String[] args = { commerceAccount, assetKey, profit+"", receiptorAccount1, receiptorAccount2, remarkJSON };
-	
-	// 调用合约代码的分配操作；
-	txTemp.executeScript(commerceAccount)
-		.invoke("DISTRIBUTE", args);
-	// --------------------------------------
-
-	// TX 准备就绪；
-	PreparedTransaction prepTx = txTemp.prepare();
-	String txHash = prepTx.getHash();
-
-	// 使用私钥进行签名；
-	prepTx.sign(sponsorAddress, sponsorPrivKey);
-
-	// 提交交易；
-	prepTx.commit();
-
-### 7. 事件监听
-	// 创建服务代理；
-	BlockchainService service = BlockchainServiceFactory.createServiceProxy(realm, peerIPs, clientAddress, privKey);
-	
-	//监听账户变动；
-	String walletAccount = "MMMEy902jkjjJJDkshreGeasdfassdfajjf==";
-	service.addBlockchainEventListener(BlockchainEventType.PAYLOAD_UPDATED.CODE, null, walletAccount, new BlockchainEventListener() {
-		@Override
-		public void onEvent(BlockchainEventMessage eventMessage, BlockchainEventHandle eventHandle) {
-			//钱包余额；
-			PayloadMap balancePayload = service.getPayload(walletAccount, "RMB-ASSET");
-			Long balance =(Long) balancePayload.get("RMB-ASSET");
-			if (balance != null) {
-				//notify balance change;
-			}else{
-				//wallet is empty and isn't listened any more;
-				eventHandle.cancel();
-			}
-		}
-	});
-	
-	//销毁服务代理；
-	service.dispose();
-	
-### 8. 合约开发
-	/**
-	 * 示例：一个“资产管理”智能合约的实现；
-	 * 
-	 * 注： 1、实现 EventProcessingAwire 接口以便合约实例在运行时可以从上下文获得合约生命周期事件的通知； 2、实现
-	 * AssetContract 接口定义的合约方法；
-	 * 
-	 * @author huanghaiquan
-	 *
-	 */
-	public class AssetContractImpl implements EventProcessingAwire, AssetContract {
-		// 资产管理账户的地址；
-		private static final String ASSET_ADDRESS = "2njZBNbFQcmKd385DxVejwSjy4driRzf9Pk";
-		// 保存资产总数的键；
-		private static final String KEY_TOTAL = "TOTAL";
-		// 合约事件上下文；
-		private ContractEventContext eventContext;
-
-		/**
-		 * ------------------- 定义可以由外部用户通过提交“交易”触发的调用方法 ------------------
-		 */
-
-		@Override
-		public void issue(long amount, String assetHolderAddress) {
-			checkAllOwnersAgreementPermission();
-
-			// 新发行的资产数量；
-			if (amount < 0) {
-				throw new ContractError("The amount is negative!");
-			}
-			if (amount == 0) {
-				return;
-			}
-
-			// 校验持有者账户的有效性；
-			BlockchainAccount holderAccount = eventContext.getLedger().getAccount(currentLedgerHash(), assetHolderAddress);
-			if (holderAccount == null) {
-				throw new ContractError("The holder is not exist!");
-			}
-
-			// 查询当前值；
-			Set<String> keys = new HashSet<>();
-			keys.add(KEY_TOTAL);
-			keys.add(assetHolderAddress);
-			StateMap currStates = eventContext.getLedger().getStates(currentLedgerHash(), ASSET_ADDRESS, keys);
-
-			// 计算资产的发行总数；
-			StateEntry currTotal = currStates.get(KEY_TOTAL);
-			StateEntry newTotal = currTotal.newLong(currTotal.longValue() + amount);
-
-			// 分配到持有者账户；
-			StateEntry holderAmount = currStates.get(assetHolderAddress);
-			StateEntry newHodlerAmount = holderAmount.newLong(holderAmount.longValue() + amount);
-
-			// 把数据的更改写入到账本；
-			SimpleStateMap newStates = new SimpleStateMap(currStates.getAccount(), currStates.getAccountVersion(),
-					currStates.getStateVersion());
-			newStates.setValue(newTotal);
-			newStates.setValue(newHodlerAmount);
-
-			eventContext.getLedger().updateState(ASSET_ADDRESS).setStates(currStates);
-		}
-
-		@Override
-		public void transfer(String fromAddress, String toAddress, long amount) {
-			if (amount < 0) {
-				throw new ContractError("The amount is negative!");
-			}
-			if (amount == 0) {
-				return;
-			}
-
-			//校验“转出账户”是否已签名；
-			checkSignerPermission(fromAddress);
-
-			// 查询现有的余额；
-			Set<String> keys = new HashSet<>();
-			keys.add(fromAddress);
-			keys.add(toAddress);
-			StateMap origBalances = eventContext.getLedger().getStates(currentLedgerHash(), ASSET_ADDRESS, keys);
-			StateEntry fromBalance = origBalances.get(fromAddress);
-			StateEntry toBalance = origBalances.get(toAddress);
-			
-			//检查是否余额不足；
-			if ((fromBalance.longValue() - amount) < 0) {
-				throw new ContractError("Insufficient balance!");
-			}
-
-			// 把数据的更改写入到账本；
-			SimpleStateMap newBalances = new SimpleStateMap(origBalances.getAccount(), origBalances.getAccountVersion(),
-					origBalances.getStateVersion());
-			StateEntry newFromBalance = fromBalance.newLong(fromBalance.longValue() - amount);
-			StateEntry newToBalance = toBalance.newLong(toBalance.longValue() + amount);
-			newBalances.setValue(newFromBalance);
-			newBalances.setValue(newToBalance);
-
-			eventContext.getLedger().updateState(ASSET_ADDRESS).setStates(newBalances);
-		}
-	}
+```java
+    private void deploy_exe_contract_on_test_gateway(){
+        //then exe the contract;
+        // 由于合约发布之后需要后台进行共识处理，需要一定的时间消耗，先休息5秒钟之后再执行;
+        try {
+            Thread.sleep(1000L);
+            boolean deployResult = ContractDeployExeUtil.instance.deploy(host, port, ledger,ownerPubPath, ownerPrvPath, ownerPassword, chainCodePath,contractPub);
+            System.out.println("deployResult="+deployResult);
+            Thread.sleep(2000L);
+            boolean exeResult = false;
+            exeResult = ContractDeployExeUtil.instance.exeContract(ledger,ownerPubPath, ownerPrvPath, ownerPassword,eventName,contractArgs);
+            System.out.println("execute the contract,result= "+exeResult);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+```

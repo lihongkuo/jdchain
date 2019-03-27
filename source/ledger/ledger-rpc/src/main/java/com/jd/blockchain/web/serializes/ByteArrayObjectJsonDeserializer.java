@@ -1,4 +1,4 @@
-package com.jd.blockchain.crypto.serialize;
+package com.jd.blockchain.web.serializes;
 
 import com.alibaba.fastjson.parser.DefaultJSONParser;
 import com.alibaba.fastjson.parser.JSONToken;
@@ -15,22 +15,22 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-public class ByteArrayObjectDeserializer extends JavaBeanDeserializer {
+public class ByteArrayObjectJsonDeserializer extends JavaBeanDeserializer {
 
-    private ByteArrayObjectDeserializer(Class<?> clazz) {
+    private ByteArrayObjectJsonDeserializer(Class<?> clazz) {
         super(ParserConfig.global, clazz);
     }
 
-	public static ByteArrayObjectDeserializer getInstance(Class<?> clazz) {
-		return new ByteArrayObjectDeserializer(clazz);
+	public static ByteArrayObjectJsonDeserializer getInstance(Class<?> clazz) {
+		return new ByteArrayObjectJsonDeserializer(clazz);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T> T deserialze(DefaultJSONParser parser, Type type, Object fieldName) {
 		if (type instanceof Class && clazz.isAssignableFrom((Class<?>) type)) {
-			String base58Str = parser.parseObject(String.class);
-			byte[] hashBytes = Base58Utils.decode(base58Str);
+			String parseText = parser.parseObject(String.class);
+			byte[] hashBytes = Base58Utils.decode(parseText);
 			if (clazz == HashDigest.class) {
 				return (T) new HashDigest(hashBytes);
 			} else if (clazz == PubKey.class) {
@@ -42,6 +42,29 @@ public class ByteArrayObjectDeserializer extends JavaBeanDeserializer {
 			} else if (clazz == BytesSlice.class) {
 				return (T) new BytesSlice(hashBytes);
 			}
+
+//			else if (clazz == BytesValue.class) {
+//				ByteArrayObjectJsonSerializer.BytesValueJson valueJson = JSON.parseObject(parseText, ByteArrayObjectJsonSerializer.BytesValueJson.class);
+//				DataType dataType = valueJson.getType();
+//				Object dataVal = valueJson.getValue();
+//				byte[] bytes = null;
+//				switch (dataType) {
+//					case BYTES:
+//						bytes = ByteArray.fromHex((String) dataVal);
+//						break;
+//					case TEXT:
+//						bytes = ((String) dataVal).getBytes();
+//						break;
+//					case INT64:
+//						bytes = BytesUtils.toBytes((Long) dataVal);
+//						break;
+//					case JSON:
+//						bytes = ((String) dataVal).getBytes();
+//						break;
+//				}
+//				BytesValue bytesValue = new BytesValueImpl(dataType, bytes);
+//				return (T) bytesValue;
+//			}
 		}
 		return (T) parser.parse(fieldName);
 	}
@@ -54,7 +77,7 @@ public class ByteArrayObjectDeserializer extends JavaBeanDeserializer {
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             Object value = entry.getValue();
             if (value instanceof String) {
-				byte[] hashBytes = Base58Utils.decode((String)value);
+				byte[] hashBytes = Base58Utils.decode((String) value);
 				if (clazz == HashDigest.class) {
 					return new HashDigest(hashBytes);
 				} else if (clazz == PubKey.class) {
