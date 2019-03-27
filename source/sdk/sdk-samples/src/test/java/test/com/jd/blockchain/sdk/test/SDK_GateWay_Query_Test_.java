@@ -207,7 +207,7 @@ public class SDK_GateWay_Query_Test_ {
         }
 
         // Get total kvs
-        KVDataEntry[] kvData = service.getDataEntries(ledgerHash, queryDataAccountAddress);
+        KVDataEntry[] kvData = service.getDataEntries(ledgerHash, queryDataAccountAddress, 0, 100);
         if (kvData != null && kvData.length > 0) {
             for (KVDataEntry kvDatum : kvData) {
                 System.out.println("kvData.key=" + kvDatum.getKey());
@@ -217,6 +217,12 @@ public class SDK_GateWay_Query_Test_ {
                 // Get one kvData by key
                 KVDataEntry[] kvDataEntries = service.getDataEntries(ledgerHash,
                         queryDataAccountAddress, kvDatum.getKey());
+
+                for (KVDataEntry kv : kvDataEntries) {
+                    System.out.println("kv.key=" + kv.getKey());
+                    System.out.println("kv.version=" + kv.getVersion());
+                    System.out.println("kv.value=" + kv.getValue());
+                }
             }
         }
     }
