@@ -130,6 +130,8 @@ public class IntegrationTest4MQ {
 				BlockchainKeyPair da = dataAccountResponse.keyPair;
 				IntegrationBase.KvResponse kvResponse = IntegrationBase.testSDK_InsertData(adminKey, ledgerHash, blockchainService, da.getAddress());
 				validKvWrite(kvResponse, ledgerRepository, blockchainService);
+				//more page
+				testSDK_InsertData_morePage(adminKey, ledgerHash, blockchainService, da.getAddress());
 			}
 		}
 

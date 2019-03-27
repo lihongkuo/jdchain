@@ -8,8 +8,8 @@ import com.jd.blockchain.ledger.BytesValue;
 import com.jd.blockchain.ledger.KVDataEntry;
 import com.jd.blockchain.ledger.KVDataObject;
 import com.jd.blockchain.utils.Bytes;
+import com.jd.blockchain.utils.QueryUtil;
 import com.jd.blockchain.utils.ValueType;
-import com.jd.blockchain.utils.serialize.binary.BinarySerializeUtils;
 
 public class DataAccount implements AccountHeader, MerkleProvable {
 
@@ -124,14 +124,16 @@ public class DataAccount implements AccountHeader, MerkleProvable {
 			return null;
 		}
 
-		if (count == -1 || count > getDataEntriesTotalCount()) {
-			fromIndex = 0;
-			count = (int)getDataEntriesTotalCount();
-		}
-
-		if (fromIndex < 0 || fromIndex > getDataEntriesTotalCount() - 1) {
-			fromIndex = 0;
-		}
+//		if (count == -1 || count > getDataEntriesTotalCount()) {
+//			fromIndex = 0;
+//			count = (int)getDataEntriesTotalCount();
+//		}
+//		if (fromIndex < 0 || fromIndex > getDataEntriesTotalCount() - 1) {
+//			fromIndex = 0;
+//		}
+		int pages[]  = QueryUtil.calFromIndexAndCount(fromIndex,count,(int)getDataEntriesTotalCount());
+		fromIndex = pages[0];
+		count = pages[1];
 
 		KVDataEntry[] kvDataEntries = new KVDataEntry[count];
 		byte[] value;
