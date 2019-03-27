@@ -57,6 +57,7 @@ public class LedgerTransactionData implements LedgerTransaction {
 		this.endpointSignatures = txReq.getEndpointSignatures();
 		this.nodeSignatures = txReq.getNodeSignatures();
 		this.executionState = execState;
+		this.hash = txReq.getHash();
 	}
 
 	@Override
