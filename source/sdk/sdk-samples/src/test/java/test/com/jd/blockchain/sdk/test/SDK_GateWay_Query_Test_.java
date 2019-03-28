@@ -10,6 +10,7 @@ package test.com.jd.blockchain.sdk.test;
 
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.sdk.client.ClientOperationUtil;
+import org.apache.commons.codec.binary.Hex;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,8 +40,6 @@ public class SDK_GateWay_Query_Test_ {
     private boolean SECURE;
 
     private BlockchainService service;
-
-    private AsymmetricCryptography asymmetricCryptography = new AsymmtricCryptographyImpl();
 
     @Before
     public void init() {
@@ -156,8 +155,7 @@ public class SDK_GateWay_Query_Test_ {
                         LedgerInitOperation ledgerInitOperation = (LedgerInitOperation)operation;
                         LedgerInitSetting ledgerInitSetting = ledgerInitOperation.getInitSetting();
 
-                        // 需要检查种子是否正确
-                        System.out.println(new String(ledgerInitSetting.getLedgerSeed()));
+                        System.out.println(Hex.encodeHexString(ledgerInitSetting.getLedgerSeed()));
                         System.out.println(ledgerInitSetting.getConsensusProvider());
                         System.out.println(ledgerInitSetting.getConsensusSettings().toBase58());
 
@@ -223,6 +221,7 @@ public class SDK_GateWay_Query_Test_ {
             for (KVDataEntry kvDatum : kvData) {
                 System.out.println("kvData.key=" + kvDatum.getKey());
                 System.out.println("kvData.version=" + kvDatum.getVersion());
+                System.out.println("kvData.type=" + kvDatum.getType());
                 System.out.println("kvData.value=" + kvDatum.getValue());
 
                 // Get one kvData by key
@@ -232,6 +231,7 @@ public class SDK_GateWay_Query_Test_ {
                 for (KVDataEntry kv : kvDataEntries) {
                     System.out.println("kv.key=" + kv.getKey());
                     System.out.println("kv.version=" + kv.getVersion());
+                    System.out.println("kv.type=" + kv.getType());
                     System.out.println("kv.value=" + kv.getValue());
                 }
             }

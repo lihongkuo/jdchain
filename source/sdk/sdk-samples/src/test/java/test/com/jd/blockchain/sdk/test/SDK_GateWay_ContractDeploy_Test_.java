@@ -20,8 +20,11 @@ import com.jd.blockchain.ledger.data.TxResponseMessage;
 import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.BlockchainTransactionService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
+import com.jd.blockchain.utils.io.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -33,7 +36,7 @@ import static org.junit.Assert.assertTrue;
  * @since 1.0.0
  */
 
-public class SDK_GateWay_DataAccount_Test_ {
+public class SDK_GateWay_ContractDeploy_Test_ {
 
     private BlockchainKeyPair CLIENT_CERT = null;
 
@@ -45,13 +48,15 @@ public class SDK_GateWay_DataAccount_Test_ {
 
     private BlockchainService service;
 
+    private String CONTRACT_FILE = null;
+
     private AsymmetricCryptography asymmetricCryptography = new AsymmtricCryptographyImpl();
 
     @Before
     public void init() {
-        CLIENT_CERT = new BlockchainKeyPair(SDK_GateWay_KeyPair_Para.pubKey0, SDK_GateWay_KeyPair_Para.privkey0);
+        CLIENT_CERT = BlockchainKeyGenerator.getInstance().generate(CryptoAlgorithm.ED25519);
         GATEWAY_IPADDR = "127.0.0.1";
-        GATEWAY_PORT = 8081;
+        GATEWAY_PORT = 8000;
         SECURE = false;
         GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(GATEWAY_IPADDR, GATEWAY_PORT, SECURE,
                 CLIENT_CERT);
@@ -59,21 +64,25 @@ public class SDK_GateWay_DataAccount_Test_ {
     }
 
     @Test
-    public void registerDataAccount_Test() {
-        HashDigest[] ledgerHashs = service.getLedgerHashs();
+    public void contractDeploy_Test() {
+        HashDigest ledgerHash = service.getLedgerHashs()[0];
         // 在本地定义TX模板
-        TransactionTemplate txTemp = service.newTransaction(ledgerHashs[0]);
+        TransactionTemplate txTemp = service.newTransaction(ledgerHash);
 
-        //existed signer
-        CryptoKeyPair keyPair = new BlockchainKeyPair(SDK_GateWay_KeyPair_Para.pubKey1, SDK_GateWay_KeyPair_Para.privkey1);
+        // 合约内容读取
+        byte[] contractBytes = FileUtils.readBytes(new File(CONTRACT_FILE));
 
-        BlockchainKeyPair dataAccount = BlockchainKeyGenerator.getInstance().generate();
+        // 生成用户
+        BlockchainIdentityData blockchainIdentity = new BlockchainIdentityData(getSponsorKey().getPubKey());
 
-        // 注册
-        txTemp.dataAccounts().register(dataAccount.getIdentity());
+        // 发布合约
+        txTemp.contracts().deploy(blockchainIdentity, contractBytes);
 
         // TX 准备就绪；
         PreparedTransaction prepTx = txTemp.prepare();
+
+        // 使用私钥进行签名；
+        CryptoKeyPair keyPair = getSponsorKey();
 
         prepTx.sign(keyPair);
 
@@ -81,9 +90,13 @@ public class SDK_GateWay_DataAccount_Test_ {
         TransactionResponse transactionResponse = prepTx.commit();
 
         assertTrue(transactionResponse.isSuccess());
+
+        // 打印合约地址
+        System.out.println(blockchainIdentity.getAddress().toBase58());
     }
 
-    private SignatureFunction getSignatureFunction() {
-        return asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
-    }
+    private CryptoKeyPair getSponsorKey() {
+        SignatureFunction signatureFunction = asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
+        return signatureFunction.generateKeyPair();
+	}
 }

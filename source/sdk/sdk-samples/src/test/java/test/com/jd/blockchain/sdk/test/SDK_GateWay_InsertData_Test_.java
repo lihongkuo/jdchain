@@ -17,6 +17,7 @@ import com.jd.blockchain.crypto.hash.HashDigest;
 import com.jd.blockchain.crypto.impl.AsymmtricCryptographyImpl;
 import com.jd.blockchain.ledger.*;
 import com.jd.blockchain.ledger.data.TxResponseMessage;
+import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.BlockchainTransactionService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
 import com.jd.blockchain.sdk.samples.SDKDemo_InsertData;
@@ -27,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * 插入数据测试
@@ -45,7 +47,7 @@ public class SDK_GateWay_InsertData_Test_ {
 
     private boolean SECURE;
 
-    private BlockchainTransactionService service;
+    private BlockchainService service;
 
     private AsymmetricCryptography asymmetricCryptography = new AsymmtricCryptographyImpl();
 
@@ -58,19 +60,12 @@ public class SDK_GateWay_InsertData_Test_ {
         GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(GATEWAY_IPADDR, GATEWAY_PORT, SECURE,
                 CLIENT_CERT);
         service = serviceFactory.getBlockchainService();
-
-        DataContractRegistry.register(TransactionContent.class);
-        DataContractRegistry.register(TransactionContentBody.class);
-        DataContractRegistry.register(TransactionRequest.class);
-        DataContractRegistry.register(NodeRequest.class);
-        DataContractRegistry.register(EndpointRequest.class);
-        DataContractRegistry.register(TransactionResponse.class);
     }
 
     @Test
     public void insertData_Test() {
-        HashDigest ledgerHash = getLedgerHash();
-        // 在本地定义注册账号的 TX；
+        HashDigest ledgerHash = service.getLedgerHashs()[0];
+        // 在本地定义TX模板
         TransactionTemplate txTemp = service.newTransaction(ledgerHash);
 
         // --------------------------------------
@@ -79,6 +74,7 @@ public class SDK_GateWay_InsertData_Test_ {
         String dataAccount = "GGhhreGeasdfasfUUfehf9932lkae99ds66jf==";
 
         String dataKey = "jd_code";
+
         byte[] dataVal = "www.jd.com".getBytes();
 
         txTemp.dataAccount(dataAccount).set(dataKey, dataVal, -1);
@@ -92,39 +88,11 @@ public class SDK_GateWay_InsertData_Test_ {
 
         // 提交交易；
         TransactionResponse transactionResponse = prepTx.commit();
-
-        // 期望返回结果
-        TransactionResponse expectResp = initResponse();
-
-        System.out.println("---------- assert start ----------");
-        assertEquals(expectResp.isSuccess(), transactionResponse.isSuccess());
-        assertEquals(expectResp.getExecutionState(), transactionResponse.getExecutionState());
-        assertEquals(expectResp.getContentHash(), transactionResponse.getContentHash());
-        assertEquals(expectResp.getBlockHeight(), transactionResponse.getBlockHeight());
-        assertEquals(expectResp.getBlockHash(), transactionResponse.getBlockHash());
-        System.out.println("---------- assert OK ----------");
+        assertTrue(transactionResponse.isSuccess());
     }
-
-    private HashDigest getLedgerHash() {
-        HashDigest ledgerHash = new HashDigest(CryptoAlgorithm.SHA256, "jd-gateway".getBytes());
-        return ledgerHash;
-    }
-
 
     private CryptoKeyPair getSponsorKey() {
         SignatureFunction signatureFunction = asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
         return signatureFunction.generateKeyPair();
 	}
-	
-    private TransactionResponse initResponse() {
-        HashDigest contentHash = new HashDigest(CryptoAlgorithm.SHA256, "contentHash".getBytes());
-        HashDigest blockHash = new HashDigest(CryptoAlgorithm.SHA256, "blockHash".getBytes());
-        long blockHeight = 9998L;
-
-        TxResponseMessage resp = new TxResponseMessage(contentHash);
-        resp.setBlockHash(blockHash);
-        resp.setBlockHeight(blockHeight);
-        resp.setExecutionState(TransactionState.SUCCESS);
-        return resp;
-    }
 }

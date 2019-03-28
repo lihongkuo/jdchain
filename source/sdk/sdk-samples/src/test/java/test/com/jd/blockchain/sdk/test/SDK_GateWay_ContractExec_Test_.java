@@ -33,7 +33,7 @@ import static org.junit.Assert.assertTrue;
  * @since 1.0.0
  */
 
-public class SDK_GateWay_DataAccount_Test_ {
+public class SDK_GateWay_ContractExec_Test_ {
 
     private BlockchainKeyPair CLIENT_CERT = null;
 
@@ -49,31 +49,39 @@ public class SDK_GateWay_DataAccount_Test_ {
 
     @Before
     public void init() {
-        CLIENT_CERT = new BlockchainKeyPair(SDK_GateWay_KeyPair_Para.pubKey0, SDK_GateWay_KeyPair_Para.privkey0);
+        CLIENT_CERT = BlockchainKeyGenerator.getInstance().generate(CryptoAlgorithm.ED25519);
         GATEWAY_IPADDR = "127.0.0.1";
-        GATEWAY_PORT = 8081;
+        GATEWAY_PORT = 8000;
         SECURE = false;
-        GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(GATEWAY_IPADDR, GATEWAY_PORT, SECURE,
-                CLIENT_CERT);
+        GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(
+                GATEWAY_IPADDR, GATEWAY_PORT, SECURE, CLIENT_CERT);
         service = serviceFactory.getBlockchainService();
     }
 
     @Test
-    public void registerDataAccount_Test() {
-        HashDigest[] ledgerHashs = service.getLedgerHashs();
+    public void contractExec_Test() {
+        HashDigest ledgerHash = getLedgerHash();
         // 在本地定义TX模板
-        TransactionTemplate txTemp = service.newTransaction(ledgerHashs[0]);
+        TransactionTemplate txTemp = service.newTransaction(ledgerHash);
 
-        //existed signer
-        CryptoKeyPair keyPair = new BlockchainKeyPair(SDK_GateWay_KeyPair_Para.pubKey1, SDK_GateWay_KeyPair_Para.privkey1);
+        // 合约地址
+        String contractAddressBase58 = "";
 
-        BlockchainKeyPair dataAccount = BlockchainKeyGenerator.getInstance().generate();
+        // Event
+        String event = "";
 
-        // 注册
-        txTemp.dataAccounts().register(dataAccount.getIdentity());
+        // args（注意参数的格式）
+        byte[] args = "20##30##abc".getBytes();
+
+
+        // 提交合约执行代码
+        txTemp.contractEvents().send(contractAddressBase58, event, args);
 
         // TX 准备就绪；
         PreparedTransaction prepTx = txTemp.prepare();
+
+        // 生成私钥并使用私钥进行签名；
+        CryptoKeyPair keyPair = getSponsorKey();
 
         prepTx.sign(keyPair);
 
@@ -83,7 +91,14 @@ public class SDK_GateWay_DataAccount_Test_ {
         assertTrue(transactionResponse.isSuccess());
     }
 
-    private SignatureFunction getSignatureFunction() {
-        return asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
+    private HashDigest getLedgerHash() {
+        HashDigest ledgerHash = new HashDigest(CryptoAlgorithm.SHA256, "jd-gateway".getBytes());
+        return ledgerHash;
     }
+
+
+    private CryptoKeyPair getSponsorKey() {
+        SignatureFunction signatureFunction = asymmetricCryptography.getSignatureFunction(CryptoAlgorithm.ED25519);
+        return signatureFunction.generateKeyPair();
+	}
 }

@@ -18,6 +18,7 @@ import com.jd.blockchain.utils.Bytes;
 import com.jd.blockchain.utils.codec.Base58Utils;
 import com.jd.blockchain.utils.codec.HexUtils;
 import com.jd.blockchain.utils.io.BytesSlice;
+import org.apache.commons.codec.binary.Base64;
 
 import java.lang.reflect.Field;
 
@@ -118,8 +119,8 @@ public class ClientOperationUtil {
         LedgerInitSettingData ledgerInitSettingData = new LedgerInitSettingData();
         String ledgerSeedStr = legerInitObj.getString("ledgerSeed");
 
-        // TODO 种子是否做Base58转换？
-        ledgerInitSettingData.setLedgerSeed(ledgerSeedStr.getBytes());
+        // 种子需要做Base64转换
+        ledgerInitSettingData.setLedgerSeed(Base64.decodeBase64(ledgerSeedStr.getBytes()));
 
         String consensusProvider = legerInitObj.getString("consensusProvider");
 
