@@ -44,7 +44,7 @@ public class SDK_GateWay_Query_Test_ {
     @Before
     public void init() {
         CLIENT_CERT = BlockchainKeyGenerator.getInstance().generate(CryptoAlgorithm.ED25519);
-        GATEWAY_IPADDR = "192.168.151.39";
+        GATEWAY_IPADDR = "127.0.0.1";
         GATEWAY_PORT = 8081;
         SECURE = false;
         GatewayServiceFactory serviceFactory = GatewayServiceFactory.connect(GATEWAY_IPADDR, GATEWAY_PORT, SECURE,
