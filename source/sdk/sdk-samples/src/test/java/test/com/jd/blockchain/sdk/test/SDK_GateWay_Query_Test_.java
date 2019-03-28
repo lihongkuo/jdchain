@@ -9,28 +9,17 @@
 package test.com.jd.blockchain.sdk.test;
 
 import com.jd.blockchain.ledger.*;
-import com.jd.blockchain.utils.codec.HexUtils;
-import com.jd.blockchain.utils.io.BytesSlice;
-import com.jd.blockchain.web.serializes.ByteArrayObjectJsonDeserializer;
-import com.jd.blockchain.web.serializes.ByteArrayObjectJsonSerializer;
+import com.jd.blockchain.sdk.client.ClientOperationUtil;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.jd.blockchain.binaryproto.DataContractRegistry;
 import com.jd.blockchain.crypto.CryptoAlgorithm;
 import com.jd.blockchain.crypto.asymmetric.AsymmetricCryptography;
-import com.jd.blockchain.crypto.asymmetric.CryptoKeyPair;
-import com.jd.blockchain.crypto.asymmetric.PubKey;
-import com.jd.blockchain.crypto.asymmetric.SignatureDigest;
-import com.jd.blockchain.crypto.asymmetric.SignatureFunction;
 import com.jd.blockchain.crypto.hash.HashDigest;
 import com.jd.blockchain.crypto.impl.AsymmtricCryptographyImpl;
-import com.jd.blockchain.ledger.data.TxResponseMessage;
 import com.jd.blockchain.sdk.BlockchainService;
 import com.jd.blockchain.sdk.client.GatewayServiceFactory;
-import com.jd.blockchain.utils.serialize.json.JSONSerializeUtils;
 
-import java.io.ObjectInputStream;
 
 /**
  * 插入数据测试
@@ -144,15 +133,53 @@ public class SDK_GateWay_Query_Test_ {
         System.out.println("transactionCount=" + count);
 
         // Get transaction list
-        LedgerTransaction[] txList = service.getTransactions(ledgerHash, latestBlockHeight, 0, 100);
+        LedgerTransaction[] txList = service.getTransactions(ledgerHash, 0, 0, 100);
         for (LedgerTransaction ledgerTransaction : txList) {
             System.out.println("transaction.executionState=" + ledgerTransaction.getExecutionState());
-            System.out.println("transaction.hash=" + ledgerTransaction.getHash().toBase58());
+//            System.out.println("transaction.hash=" + ledgerTransaction.getHash().toBase58());
             TransactionContent txContent = ledgerTransaction.getTransactionContent();
+            System.out.println("transactionContent.hash=" + txContent.getHash().toBase58());
             Operation[] operations = txContent.getOperations();
             if (operations != null && operations.length > 0) {
                 for (Operation operation : operations) {
-                    if (operation instanceof DataAccountKVSetOperation) {
+                    operation = ClientOperationUtil.read(operation);
+                    if (operation instanceof  DataAccountRegisterOperation) {
+                        DataAccountRegisterOperation daro = (DataAccountRegisterOperation) operation;
+                        BlockchainIdentity blockchainIdentity = daro.getAccountID();
+                        System.out.println("register account = " + blockchainIdentity.getAddress().toBase58());
+                    } else if (operation instanceof UserRegisterOperation) {
+                        UserRegisterOperation uro = (UserRegisterOperation) operation;
+                        BlockchainIdentity blockchainIdentity = uro.getUserID();
+                        System.out.println("register user = " + blockchainIdentity.getAddress().toBase58());
+                    } else if (operation instanceof LedgerInitOperation) {
+
+                        LedgerInitOperation ledgerInitOperation = (LedgerInitOperation)operation;
+                        LedgerInitSetting ledgerInitSetting = ledgerInitOperation.getInitSetting();
+
+                        // 需要检查种子是否正确
+                        System.out.println(new String(ledgerInitSetting.getLedgerSeed()));
+                        System.out.println(ledgerInitSetting.getConsensusProvider());
+                        System.out.println(ledgerInitSetting.getConsensusSettings().toBase58());
+
+                        ParticipantNode[] participantNodes = ledgerInitSetting.getConsensusParticipants();
+                        if (participantNodes != null && participantNodes.length > 0) {
+                            for (ParticipantNode participantNode : participantNodes) {
+                                System.out.println("participantNode.id=" + participantNode.getId());
+                                System.out.println("participantNode.name=" + participantNode.getName());
+                                System.out.println("participantNode.address=" + participantNode.getAddress());
+                                System.out.println("participantNode.pubKey=" + participantNode.getPubKey().toBase58());
+                            }
+                        }
+
+                    } else if (operation instanceof ContractCodeDeployOperation) {
+                        ContractCodeDeployOperation ccdo = (ContractCodeDeployOperation) operation;
+                        BlockchainIdentity blockchainIdentity = ccdo.getContractID();
+                        System.out.println("deploy contract = " + blockchainIdentity.getAddress());
+                    } else if (operation instanceof ContractEventSendOperation) {
+                        ContractEventSendOperation ceso = (ContractEventSendOperation) operation;
+                        System.out.println("event = " + ceso.getEvent());
+                        System.out.println("execute contract address = " + ceso.getContractAddress().toBase58());
+                    } else if (operation instanceof DataAccountKVSetOperation) {
                         DataAccountKVSetOperation.KVWriteEntry[] kvWriteEntries =
                                 ((DataAccountKVSetOperation) operation).getWriteSet();
                         if (kvWriteEntries != null && kvWriteEntries.length > 0) {
@@ -160,25 +187,9 @@ public class SDK_GateWay_Query_Test_ {
                                 System.out.println("writeSet.key=" + kvWriteEntry.getKey());
                                 BytesValue bytesValue = kvWriteEntry.getValue();
                                 DataType dataType = bytesValue.getType();
-                                BytesSlice saveVal = bytesValue.getValue();
-                                Object showVal;
-                                switch (dataType) {
-                                    case BYTES:
-                                        // return hex
-                                        showVal = HexUtils.encode(saveVal.getBytesCopy());
-                                        break;
-                                    case TEXT:
-                                    case JSON:
-                                        showVal = saveVal.getString();
-                                        break;
-                                    case INT64:
-                                        showVal = saveVal.getLong();
-                                        break;
-                                    default:
-                                        showVal = HexUtils.encode(saveVal.getBytesCopy());
-                                        break;
-                                }
+                                Object showVal = ClientOperationUtil.readValueByBytesValue(bytesValue);
                                 System.out.println("writeSet.value=" + showVal);
+                                System.out.println("writeSet.type=" + dataType);
                                 System.out.println("writeSet.version=" + kvWriteEntry.getExpectedVersion());
                             }
                         }
